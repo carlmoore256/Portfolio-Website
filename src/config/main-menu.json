@@ -1,0 +1,19 @@
+{
+  "menu": [
+    {
+      "path": "/"
+    },
+    {
+      "path": "/music/"
+    },
+    {
+      "path": "/visual-art/"
+    },
+    {
+      "path": "/bio/"
+    },
+    {
+      "path": "/contact/"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+$cellSize: 40px;
+.cell {
+  background-color: #e6a6fb;
+  cursor: pointer;
+  width: $cellSize;
+  height: $cellSize;
+  border: 1px solid #0004;
+  text-align: center;
+  line-height: $cellSize;
+}
+.revealed {
+  background-color: #fafadd;
+  cursor: default;
+}
+.flag {
+  background-color: orange;
+}
+.mine {
+  background-color: darkred;
+}

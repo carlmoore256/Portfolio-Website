@@ -1,0 +1,26 @@
+{
+  "users": [
+    {
+      "id": "qwerty",
+      "name": "Qwerty"
+    },
+    {
+      "id": "foobar",
+      "name": "Foobar"
+    }
+  ],
+  "posts": [
+    {
+      "date": "2021-05-20",
+      "title": "I figured it out, again!",
+      "body": "...carrots are good!",
+      "authorId": "qwerty"
+    },
+    {
+      "date": "2021-05-19",
+      "title": "I figured it out!",
+      "body": "...bread is good!",
+      "authorId": "qwerty"
+    }
+  ]
+}

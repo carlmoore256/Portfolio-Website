@@ -1,0 +1,3 @@
+[submodule "TimbreSpaceJS"]
+	path = src/TimbreSpaceJS/TimbreSpaceJS
+	url = https://github.com/carlmoore256/TimbreSpaceJS
