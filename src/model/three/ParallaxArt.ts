@@ -1,4 +1,4 @@
-import { Box3, Camera, Color, FrontSide, GridHelper, Group, Mesh, MeshBasicMaterial, Object3D, PerspectiveCamera, Raycaster, Renderer, Scene, ShapeGeometry, Vector2, Vector3, WebGLRenderer } from 'three'
+import { Camera, Color, FrontSide, GridHelper, Group, Mesh, MeshBasicMaterial, Object3D, ObjectLoader, PerspectiveCamera, Raycaster, Renderer, Scene, ShapeGeometry, Vector2, Vector3, WebGLRenderer } from 'three'
 
 // import Stats from './stats.module.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -7,6 +7,8 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
 import { render } from '@testing-library/react';
 import { ManagedScene } from './ManagedScene';
 import { forEach } from 'lodash';
+import { stringify } from 'querystring';
+import { group } from 'console';
 // import { VRButton } from './VRButton.js';
 
 export class ParallaxArt extends ManagedScene {
@@ -25,12 +27,11 @@ export class ParallaxArt extends ManagedScene {
 
 	private orientationControls : DeviceOrientationControls;
 	private SVGmeshes : Mesh[][] = [];
-	
-	public movementSpd = 0.1;
-	public movementMult = 0.1;
 
-	// this.init();
-	// animate();
+	private orbit = new Object3D();
+	
+	public movementSpd = 0.01;
+	public movementMult = 0.1;
 
 	constructor(width : number, height : number, private linksToSVG : string[], private layerSpacing : number)
 	{
@@ -46,10 +47,18 @@ export class ParallaxArt extends ManagedScene {
 	_initCamera(){
 		this.camera = new PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 1000 );
 		this.camera.position.set( 0, 0, 200 );
+
+		this.orbit.rotation.order = "YXZ"; //this is important to keep level, so Z should be the last axis to rotate in order...
+		// this.orbit.position.copy( this.scene.position );
+		this.orbit.position.setX(this.camera.position.x/2);
+		this.orbit.position.setY(this.camera.position.y/2);
+		// this.orbit.position.setZ(10);
+
 	}
 
 
 	_initScene(){
+		
 		this.orbitControls = new OrbitControls( this.camera, this.renderer.domElement );
 		this.orbitControls.enableDamping = true;
 		this.orbitControls.maxAzimuthAngle = Math.PI * 0.5;
@@ -63,30 +72,46 @@ export class ParallaxArt extends ManagedScene {
 		this.renderer.domElement.addEventListener( 'mousemove', this.onPointerMove.bind(this) );
 		// let bgColor = new Color("rgb")
 		// this.scene.background = new Color(0xffffff);
-		// this.scene
 		
+		// if (this.sceneJSON != "") { 
+		// 	this.scene = new ObjectLoader().parse( this.sceneJSON ); 
+		// } else {
 		this.linksToSVG.forEach((item, index) => {
-			this.loadSVG(item, index * this.layerSpacing, (this.linksToSVG.length-index) * 0.1 + 1);
+			this.loadSVG(item, index * this.layerSpacing);
 		});
+			// save the scene to a json file
+			// this.saveScene();
+		// }
+
+		this.scene.add(this.orbit);
+		this.orbit.add( this.camera );
 	};
 	
 	onPointerMove( event : any ) {	
-	  this.pointer.x = ( event.clientX / this.width ) * 2 - 1;
-	  this.pointer.y = - ( event.clientY / this.height ) * 2 + 1;
+		let scale = -0.0001;
+		this.orbit.rotateY( event.movementX * scale );
+		this.orbit.rotateX( event.movementY * scale ); 
+		this.orbit.rotation.z = 0; //this is important to keep the camera level..
+		this.pointer.x = ( event.clientX / this.width ) * 2 - 1;
+		this.pointer.y = - ( event.clientY / this.height ) * 2 + 1;
 	}
+
+
 	
 	
-	loadSVG( url : string, z_ofs : number, layerScale : number ) {
+	loadSVG( url : string, z_ofs : number ) {
 	
 		const loader = new SVGLoader();
+
+		let groupObjects : any = [];
 	
 		loader.load( url, ( data ) => {
 	
 			const paths = data.paths;
 			const group = new Group();
-			group.scale.multiplyScalar( 0.18 );
-			group.position.x = -61;
-			group.position.y = 75;
+			group.scale.multiplyScalar( 0.2 );
+			group.position.x = - 70;
+			group.position.y = 70;
 			group.scale.y *= - 1;
 	
 			let meshes = [];
@@ -95,7 +120,8 @@ export class ParallaxArt extends ManagedScene {
 	
 				const path : any = paths[ i ];
 	
-				const fillColor = path.userData.style.fill;
+				// const fillColor = path.userData.style.fill;
+				const fillColor = new Color(1,1,1);
 				if ( this.guiData.drawFillShapes && fillColor !== undefined && fillColor !== 'none' ) {
 	
 					const material = new MeshBasicMaterial( {
@@ -109,7 +135,6 @@ export class ParallaxArt extends ManagedScene {
 	
 					const shapes = SVGLoader.createShapes( path );
 
-					
 					for ( let j = 0; j < shapes.length; j ++ ) {
 	
 						const shape = shapes[ j ];
@@ -117,7 +142,8 @@ export class ParallaxArt extends ManagedScene {
 						const geometry = new ShapeGeometry( shape );
 						const mesh = new Mesh( geometry, material );
 						// mesh.translateZ(-shape.curves.length/30);
-						mesh.translateZ(Math.random() * 100);
+						// mesh.translateZ(Math.random() * 100);
+						mesh.translateZ(shape.getPointsHoles.length);
 						// mesh.translateZ(Math.random() * 100);
 						group.add( mesh );
 						meshes.push(mesh);
@@ -125,14 +151,17 @@ export class ParallaxArt extends ManagedScene {
 				}
 			}
 			group.translateZ(z_ofs);
-			// let scaleGroup = new Vector3 (layerScale, layerScale, layerScale);
-			// (group as Object3D).scale(scaleGroup));
-			// group.scale.set(group.scale.x * layerScale, group.scale.y * layerScale, group.scale.z * layerScale);
+
+			// save every object to json
+			// const json = group.toJSON();
+			// groupObjects.push(json);
+			// console.log(JSON.stringify(json));
 			this.scene.add( group );
 			this.SVGmeshes.push(meshes);
-	
+
 		} );
-	
+
+
 	}
 
 	_animate() 
@@ -151,6 +180,7 @@ export class ParallaxArt extends ManagedScene {
 	// 	renderer.setSize( window.innerWidth, window.innerHeight );
 	
 	// }
+
 	
 	movement() {
 	
@@ -203,5 +233,4 @@ export class ParallaxArt extends ManagedScene {
 		}
 	  }
 	}
-	
 } 

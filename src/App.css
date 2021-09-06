@@ -1,6 +1,9 @@
 
 body {
-  /*background-image: linear-gradient(to bottom right, #de8b8b, #eeee1d);*/
+  /* background-color: rgb(29, 29, 29); */
+  background-color: black;
+
+  background-image: linear-gradient(to bottom right, #292929, #202020);
   /*height: 100%;*/
   margin: 0;
   background-repeat: no-repeat;

@@ -36,23 +36,23 @@ function App() {
     }, [navigate]);
 
     // dynamic background gradient fun
-    useEffect(() => {
-        const c1 = new ShiftyColor();
-        c1.randomize();
-        const c2 = new ShiftyColor();
-        console.log(c1.getStyleString);
-        c2.randomize();
-        c1.components[3] = 0.1;
-        c2.components[3] = 0.1;
-        const id = setInterval(() => {
-            const s1 = c1.getStyleString();
-            const s2 = c2.getStyleString();
-            document.body.style.backgroundImage = `linear-gradient(to bottom right, ${s1}, ${s2})`;
-            c1.shift();
-            c2.shift();
-        }, 500);
-        return () => clearInterval(id);
-    }, []);
+    // useEffect(() => {
+    //     const c1 = new ShiftyColor();
+    //     c1.randomize();
+    //     const c2 = new ShiftyColor();
+    //     console.log(c1.getStyleString);
+    //     c2.randomize();
+    //     c1.components[3] = 0.1;
+    //     c2.components[3] = 0.1;
+    //     const id = setInterval(() => {
+    //         const s1 = c1.getStyleString();
+    //         const s2 = c2.getStyleString();
+    //         document.body.style.backgroundImage = `linear-gradient(to bottom right, ${s1}, ${s2})`;
+    //         c1.shift();
+    //         c2.shift();
+    //     }, 500);
+    //     return () => clearInterval(id);
+    // }, []);
 
     if (!unlocked) {
         return <>

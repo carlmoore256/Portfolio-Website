@@ -63,10 +63,17 @@ export class ManagedScene {
 
     /** override in child class */
     protected _animate() {
-        const cube = this.objects.cube;
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
+        // const cube = this.objects.cube;
+        // cube.rotation.x += 0.01;
+        // cube.rotation.y += 0.01;
     }
+
+    // protected onWindowResize() {
+    //     // this.camera.aspect = window.innerWidth / window.innerHeight;
+    //     // this.camera.updateProjectionMatrix();
+    //     this._initRenderer();
+    //     this.renderer.setSize( window.innerWidth, window.innerHeight );
+    // }
 
     /**
      * note: requires init to be called first

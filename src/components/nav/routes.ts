@@ -6,7 +6,7 @@ import { BioPage } from "../pages/BioPage";
 import { TestPage } from "../pages/TestPage";
 import { PageNotFoundPage } from "../pages/PageNotFoundPage";
 import { JSChallengePage } from "../pages/JSChallengePage";
-import { CarlsPage } from "../pages/CarlsPage";
+import { DigitalArt } from "../pages/DigitalArt";
 import { ContactPage } from "../pages/ContactPage";
 import { ReactExamplesPage } from "../pages/ReactExamplesPage";
 
@@ -52,10 +52,10 @@ export const ROUTES: Route[] = [
         component: JSChallengePage
     },
     {
-        id: "carl-page",
-        pattern: /\/carl/,
-        label: "Carl's Page",
-        component: CarlsPage
+        id: "digital-art",
+        pattern: /\/digital-art/,
+        label: "Digital Art",
+        component: DigitalArt
     },
     {
         id: "contact",

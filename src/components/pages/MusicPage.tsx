@@ -1,5 +1,5 @@
-import { BandcampPlayer, BandcampPlayerProps } from "../BandcampPlayer";
 import MusicSources from "../../config/music-sources.json";
+import { SpotifyPlayer, SpotifyPlayerProps } from "../SpotifyPlayer";
 
 export function MusicPage(): JSX.Element {
     if (MusicSources.length === 0) {
@@ -7,7 +7,7 @@ export function MusicPage(): JSX.Element {
     }
     return <div className="container" style={{textAlign:"center"}}>
         {
-            (MusicSources as BandcampPlayerProps[]).map((s,i) => <BandcampPlayer key={i} {...s}/>)
+            (MusicSources as SpotifyPlayerProps[]).map((s,i) => <SpotifyPlayer key={i} {...s}/>)
         }
     </div>;
 }

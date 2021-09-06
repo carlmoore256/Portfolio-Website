@@ -1,19 +1,12 @@
 import React, {useRef, useEffect} from "react";
 import { TimbreSpace } from "../../timbreSpaceJS/js/TimbreSpace";
 import fs from 'fs';
-import testAudio from "../../media/audio/t-rex-roar.mp3";
-import testAudio2 from "../../media/audio/piano2.wav";
-// var audio = require("../../media/audio/t-rex-roar.mp3");
+import audio_1 from "../../media/audio/t-rex-roar.mp3";
+import audio_2 from "../../media/audio/piano2.wav";
+// import audio_2 from "../../media/audio/dubstep.wav";
 
-// import audio from "../../media/audio/CISSA2.wav";
 
 export function TimbreSpaceWrapper() : JSX.Element {
-    // <audio
-    //     controls
-    //     loop
-    //     id="audio_src"
-    //     src={require("../../media/audio/CISSA2.wav")}>
-    // </audio>
 
     const mountRef = useRef<HTMLDivElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -25,7 +18,7 @@ export function TimbreSpaceWrapper() : JSX.Element {
                                             window.innerHeight,
                                             false,
                                             document,
-                                            testAudio
+                                            audio_2
                                             );
 
         timbreSpace.init();
@@ -47,7 +40,7 @@ export function TimbreSpaceWrapper() : JSX.Element {
         controls
         loop
         id="audio_src"
-        src={testAudio}
+        src={audio_2}
         ref={audioRef}>
     </audio></>;
 }
