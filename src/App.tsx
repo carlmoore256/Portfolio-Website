@@ -5,7 +5,7 @@ import { Route } from "./components/types";
 import { MinimalNav } from "./components/nav/MinimalNav";
 import { ROUTES, DEFAULT_ROUTE, selectRoute } from "./components/nav/routes";
 import { menu as MAIN_MENU } from "./config/main-menu.json";
-import { ShiftyColor } from "./model/color";
+// import { ShiftyColor } from "./model/color";
 
 function App() {
     const [activeRoute, setActiveRoute] = useState<Route>(DEFAULT_ROUTE);
@@ -54,33 +54,33 @@ function App() {
     //     return () => clearInterval(id);
     // }, []);
 
-    if (!unlocked) {
-        return <>
-            <h4>Warning!</h4>
-            <p>Turn back at once, you are not ready!</p>
-            <p>If you think you are ready, riddle me this...</p>
-            <p>What do you need to make steamed broccoli?</p>
-            <p><b>{secretFeedback}</b></p>
-            <input
-                placeholder="Well, what could it be?"
-                value={secret}
-                onChange={event => setSecret(event.target.value)}
-            />
-            <button
-                onClick={() => {
-                    const secretLower = secret.toLowerCase().replace(/\s/g, "");
-                    const correct = secretLower.includes("broccoli")
-                        && secretLower.includes("water")
-                        && secretLower.includes("heat");
-                    const feedback = correct ? "" : "No! That is not correct!";
-                    setUnlocked(correct);
-                    setSecretFeedback(feedback);
-                }}
-            >
-                GO!
-            </button>
-        </>;
-    }
+    // if (!unlocked) {
+    //     return <>
+    //         <h4>Warning!</h4>
+    //         <p>Turn back at once, you are not ready!</p>
+    //         <p>If you think you are ready, riddle me this...</p>
+    //         <p>What do you need to make steamed broccoli?</p>
+    //         <p><b>{secretFeedback}</b></p>
+    //         <input
+    //             placeholder="Well, what could it be?"
+    //             value={secret}
+    //             onChange={event => setSecret(event.target.value)}
+    //         />
+    //         <button
+    //             onClick={() => {
+    //                 const secretLower = secret.toLowerCase().replace(/\s/g, "");
+    //                 const correct = secretLower.includes("broccoli")
+    //                     && secretLower.includes("water")
+    //                     && secretLower.includes("heat");
+    //                 const feedback = correct ? "" : "No! That is not correct!";
+    //                 setUnlocked(correct);
+    //                 setSecretFeedback(feedback);
+    //             }}
+    //         >
+    //             GO!
+    //         </button>
+    //     </>;
+    // }
 
     const Content = activeRoute.component ?? React.Fragment;
 

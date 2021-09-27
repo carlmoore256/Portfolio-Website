@@ -1,9 +1,11 @@
 
 body {
   /* background-color: rgb(29, 29, 29); */
-  background-color: black;
+  /* background-color: black; */
 
-  background-image: linear-gradient(to bottom right, #292929, #202020);
+  /* background-image: linear-gradient(to bottom right, #292929, #202020); */
+  background-image: linear-gradient(to bottom right, #c4c4c4, #cecece);
+
   /*height: 100%;*/
   margin: 0;
   background-repeat: no-repeat;

@@ -1,17 +1,20 @@
+import { throws } from 'assert';
 import { Color, Vector2, Vector3 } from 'three';
 
 export class GrainObject {
-  constructor (object, buffer, position, color, features) {
+  constructor (object, buffer, position, scale, color, features) {
     this.object = object;
-    this.object.position.set(position.x, position.y, position.z);
-
-    // this.buffer = buffer;
-    this.position = position;
-    this.color = color;
     this.features = features;
 
-    this.object.userData = this;
+    this.object.position.set(position.x, position.y, position.z);
+    this.object.targetPosition = position;
 
+    this.targetColor = color;
+    this.targetScale = scale;
+    
+    this.buffer = buffer;
+
+    this.object.userData = this;
     this.updateActive = true;
 
   }
@@ -19,24 +22,54 @@ export class GrainObject {
   update () {
 
     // perform update routine
-    if (this.updateActive)
+    if (this.updateActive && this.targetPosition != undefined)
     {
-      
+      let dist = this.object.position.distanceTo(this.targetPosition);
+      if(dist > 0.0001)
+      {
+        let lerp = this.object.position.lerp(this.targetPosition, 0.1);
+        this.object.position.set(lerp.x, lerp.y, lerp.z);
+      } else {
+        this.updateActive = false;
+        this.object.position.set(this.targetPosition.x, this.targetPosition.y, this.targetPosition.z);
+      }
     }
 
   }
 
-  playAudio(amplitude : number)
+  playAudio(amplitude)
   {
     console.log(this.object.material);
-    let color : Color = new Color(1,0,0);
+    let color = new Color(1,0,0);
     this.changeColor(color);
     // this.source.start();
   }
 
-  changeColor(color : Color)
+  changeColor(color)
   {
     this.object.material.color = color;
+  }
+
+  updateOrdering(keyX, keyY, keyZ, keyR, keyG, keyB)
+  {
+    this.updateActive = true;
+    this.targetPosition = new Vector3(
+      this.features[keyX],
+      this.features[keyY],
+      this.features[keyZ]);
+
+    this.targetColor = new Color(
+      this.features[keyR],
+      this.features[keyG],
+      this.features[keyB]);
+  }
+
+  // removes buffer geometry and materials
+  deleteGrain()
+  {
+    // console.log(this.object);
+    this.object.material.dispose();
+    this.object.geometry.dispose();
   }
 }
 

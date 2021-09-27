@@ -34,9 +34,19 @@ export function TimbreSpaceWrapper() : JSX.Element {
     }, [mountRef, audioRef]);
 
     return <>
+        {/* <div style={{
+                backgroundColor: 'blue',
+                width: '100px',
+                height: '100px'
+            }}> */}
+        <div>
+ 
+
+            <h1>TEST</h1>
+        </div>
         <div
-        ref={mountRef}
-    />    <audio
+        ref={mountRef}/>    
+        <audio
         controls
         loop
         id="audio_src"

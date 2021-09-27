@@ -4,22 +4,26 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GrainObject } from './grain.js'
 
 // import { Raycaster } from './three/three.module.js';
-import { Object3D, Raycaster, Color, PerspectiveCamera, Vector, Vector2, Vector3, WebGLRenderer, Mesh, MeshBasicMaterial, SphereGeometry } from 'three';
+import { Object3D, Raycaster, Color, PerspectiveCamera, Vector, Vector2, Vector3, WebGLRenderer, Mesh, MeshBasicMaterial, SphereGeometry, Shape } from 'three';
 
 import Meyda, { MeydaFeaturesObject, MeydaAnalyzer } from 'meyda';
 
-import { GUI } from 'three/examples/jsm/libs/dat.gui.module'
-// import { GUI } from 'three/dat.gui.module'
+// import { GUI } from 'three/examples/jsm/libs/dat.gui.module'
+import { GUI } from './three/dat.gui.module'
+import { forEach } from 'lodash';
+
+// import * as data from './config.json';
+import { all_features } from './config.json'
 
 
 export class TimbreSpace extends ManagedScene {
 
     private INTERSECTED : any;
     private raycaster : Raycaster;
-    private pointer : Vector2 = new Vector2();
+    private pointer : Vector2;
     private orbitControls : OrbitControls;
     private centerPos : Vector3;
-    private guiData : any;
+    static guiData : any;
     private gui : any;
 
     private isXR : boolean;
@@ -28,14 +32,13 @@ export class TimbreSpace extends ManagedScene {
     private currentSource : any;
     private audioElement : any;
 
-
     public soundFile = '../../media/audio/CISSA2.wav';
     public winSize = 2048;
     public hopSize = 512;
     public m_RadiusScl = 5;
 
     public m_AvgCenter : Vector3;
-    private m_MainGrainModel : Object3D;
+    static mainGrainModel : Object3D;
     private m_AllGrains : GrainObject[] = [];
 
     private document : Document;
@@ -60,21 +63,6 @@ export class TimbreSpace extends ManagedScene {
         this.audioElement = this.document.getElementById("audio_src");
         this.m_AvgCenter = new Vector3(0,0,0);
 
-        this.guiData = {
-            xAxis : "mfcc_1",
-            yAxis : "mfcc_2",
-            zAxis : "mfcc_3",
-            rColor : "mfcc_4",
-            gColor : "mfcc_5",
-            bColor : "mfcc_6",
-            rotate : true,
-            // xCenter : 140,
-            // yCenter : 60,
-            // zCenter : 32,
-            maxGrains : 500,
-        };
-
-        this.createGUI();
     }
 
     _initRenderer(){
@@ -102,6 +90,7 @@ export class TimbreSpace extends ManagedScene {
 		// window.addEventListener( 'resize', onWindowResize );
 
 		this.raycaster = new Raycaster();
+        this.pointer = new Vector2(0,0);
         
 		this.renderer.domElement.addEventListener( 'mousemove', this.onPointerMove.bind(this) );
         
@@ -115,6 +104,9 @@ export class TimbreSpace extends ManagedScene {
         // {
         //     this.renderer.xr.enabled = true;
         // }
+        // this.scene.background = new Color(0x000000)
+        this.createGUI();
+
     }
 
 
@@ -123,55 +115,63 @@ export class TimbreSpace extends ManagedScene {
 
         this.gui = new GUI();
 
-        this.guiData.ctrPos = new Vector3(140,60,32);
+        TimbreSpace.guiData = {
+            xAxis : "mfcc_1",
+            yAxis : "mfcc_2",
+            zAxis : "mfcc_3",
+            rColor : "mfcc_4",
+            gColor : "mfcc_5",
+            bColor : "mfcc_6",
+            radius : "rms",
+            radiusScale : 5,
+            rotate : true,
+            maxGrains : 500,
+            ctrPos : new Vector3(140,60,32),
+        };
+
         const ctrPosFolder = this.gui.addFolder('Center Pos');
-        ctrPosFolder.add(this.guiData.ctrPos, 'x', -360.0, 360.0);
-        ctrPosFolder.add(this.guiData.ctrPos, 'y', -360.0, 360.0);
-        ctrPosFolder.add(this.guiData.ctrPos, 'z', -360.0, 360.0);
+        ctrPosFolder.add(TimbreSpace.guiData.ctrPos, 'x', -360.0, 360.0);
+        ctrPosFolder.add(TimbreSpace.guiData.ctrPos, 'y', -360.0, 360.0);
+        ctrPosFolder.add(TimbreSpace.guiData.ctrPos, 'z', -360.0, 360.0);
         ctrPosFolder.open();
 
-        
-        this.guiData.maxGrains = 500;
-
         const grainModelFolder = this.gui.addFolder('Model Options');
-        grainModelFolder.add(this.guiData, 'maxGrains', 0, 1000);
+        grainModelFolder.add(TimbreSpace.guiData, 'maxGrains', 0, 5000);
+        
+        grainModelFolder.add(TimbreSpace.guiData, "xAxis", all_features).name("x-axis feature").onChange( this.updateGrainOrdering );
+        grainModelFolder.add(TimbreSpace.guiData, "yAxis", all_features).name("y-axis feature").onChange( this.updateGrainOrdering );
+        grainModelFolder.add(TimbreSpace.guiData, "zAxis", all_features).name("z-axis feature").onChange( this.updateGrainOrdering );
+
+        grainModelFolder.add(TimbreSpace.guiData, "rColor", all_features).name("R feature").onChange( this.updateGrainOrdering );
+        grainModelFolder.add(TimbreSpace.guiData, "gColor", all_features).name("G feature").onChange( this.updateGrainOrdering );
+        grainModelFolder.add(TimbreSpace.guiData, "bColor", all_features).name("B feature").onChange( this.updateGrainOrdering );
+
+        grainModelFolder.add(TimbreSpace.guiData, "rotate").name("Rotate");
+        // this.orbitControls.autoRotate
         grainModelFolder.open();
-
-        const grainModelFeatures = {
-            "mfcc_1" : 0,
-            "mfcc_2" : 1,
-            "mfcc_3" : 2,
-            "mfcc_4" : 3,
-            "mfcc_5" : 4,
-            "mfcc_6" : 5,
-            "mfcc_7" : 6,
-            "mfcc_8" : 7,
-            "mfcc_9" : 8,
-            "mfcc_10" : 9,
-            "loudness" : "loudness",
-            "rms" : "rms"
-        }
-
-        this.gui.add(this.guiData, "xAxis", grainModelFeatures).name("x-axis feature").onChange( updateAxisOrder );
-        this.gui.add(this.guiData, "yAxis", grainModelFeatures).name("y-axis feature").onChange( updateAxisOrder );
-        this.gui.add(this.guiData, "zAxis", grainModelFeatures).name("z-axis feature").onChange( updateAxisOrder );
-
-        // this.gui.add(this.guiData, grainModelFeatures).name("R feature").onChange( updateAxisOrder );
-        // this.gui.add(this.guiData, grainModelFeatures).name("G feature").onChange( updateAxisOrder );
-        // this.gui.add(this.guiData, grainModelFeatures).name("B feature").onChange( updateAxisOrder );
-
-        function updateAxisOrder() {
-            // update grains here somehow
-        }
-
-        function updateColorOrder() {
-            // update grain colors
-        }
 
     }
 
-    updateGrainAxisOrder()
+    updateGrainOrdering()
     {
+        // if(TimbreSpace.mainGrainModel == undefined)
+        //     return;
+
+        // console.log(TimbreSpace.mainGrainModel.children.length);
+
+        console.log(TimbreSpace.mainGrainModel);
+
+        TimbreSpace.mainGrainModel.children.forEach(item => {
+            console.log(item);
+            item.userData.updateOrdering(
+                TimbreSpace.guiData.xAxis,
+                TimbreSpace.guiData.yAxis,
+                TimbreSpace.guiData.zAxis,
+                TimbreSpace.guiData.rColor,
+                TimbreSpace.guiData.gColor,
+                TimbreSpace.guiData.bColor,
+            )
+        })
     }
 
     startAudioContext()
@@ -184,13 +184,6 @@ export class TimbreSpace extends ManagedScene {
     // loads an audio file into the context, returns a source
     loadAudioFile(soundFile : string)
     {
-        // this.document.getElementById("audio_src")!.src = soundFile;
-        // this.document.getElementById("audio_src").load();
-        // const htmlAudioElement = this.document.getElementById("audio_src");
-        // this.audioContext = new AudioContext();
-        // this.audioContext.resume();
-        // this.startAudioContext();
-        // audioElement = this.document.getElementById("audio_src");
         this.audioElement.load();
         this.audioElement.autoplay = true;
         var source = this.audioContext.createMediaElementSource(this.audioElement);
@@ -199,32 +192,32 @@ export class TimbreSpace extends ManagedScene {
     }
 
 
-    audioPlaybackEngine()
-    {
-        // let buffer : AudioBuffer = this.audioContext.createBuffer(1, 512, );
-        let channels = 1;
+    // audioPlaybackEngine()
+    // {
+    //     // let buffer : AudioBuffer = this.audioContext.createBuffer(1, 512, );
+    //     let channels = 1;
 
-        for (var channel = 0; channel < channels; channel++) {
-            // This gives us the actual ArrayBuffer that contains the data
-            var nowBuffering = myArrayBuffer.getChannelData(channel);
-            for (var i = 0; i < frameCount; i++) {
-                // Math.random() is in [0; 1.0]
-                // audio needs to be in [-1.0; 1.0]
-                nowBuffering[i] = Math.random() * 2 - 1;
-            }
-        }
+    //     for (var channel = 0; channel < channels; channel++) {
+    //         // This gives us the actual ArrayBuffer that contains the data
+    //         var nowBuffering = myArrayBuffer.getChannelData(channel);
+    //         for (var i = 0; i < frameCount; i++) {
+    //             // Math.random() is in [0; 1.0]
+    //             // audio needs to be in [-1.0; 1.0]
+    //             nowBuffering[i] = Math.random() * 2 - 1;
+    //         }
+    //     }
 
-        // Get an AudioBufferSourceNode.
-        // This is the AudioNode to use when we want to play an AudioBuffer
-        var source = audioCtx.createBufferSource();
-        // set the buffer in the AudioBufferSourceNode
-        source.buffer = myArrayBuffer;
-        // connect the AudioBufferSourceNode to the
-        // destination so we can hear the sound
-        source.connect(audioCtx.destination);
-        // start the source playing
-        source.start();
-    }
+    //     // Get an AudioBufferSourceNode.
+    //     // This is the AudioNode to use when we want to play an AudioBuffer
+    //     var source = audioCtx.createBufferSource();
+    //     // set the buffer in the AudioBufferSourceNode
+    //     source.buffer = myArrayBuffer;
+    //     // connect the AudioBufferSourceNode to the
+    //     // destination so we can hear the sound
+    //     source.connect(audioCtx.destination);
+    //     // start the source playing
+    //     source.start();
+    // }
 
     // eventually make grain model its own class
     // returns an object containing all of the grains
@@ -252,20 +245,22 @@ export class TimbreSpace extends ManagedScene {
         scale : number, 
         container : Object3D) 
     {
-        // let mfcc_coeffs = [];
-        // let features : Partial<Meyda.MeydaFeaturesObject>;
+        // initialize normalization statistics
+        let normStat : { [key: string]: { [key: string]: number } }  = {}; // normStat - dict containing min and max mfcc norm vals
+        normStat["max"] = {};
+        normStat["min"] = {};
+        all_features.forEach(item => {
+            normStat.max[item] = 0;
+            normStat.min[item] = 0;
+        })
 
-        let normStat : any = {}; // normStat - dict containing min and max mfcc norm vals
-        normStat.mfcc_max = [];
-        normStat.mfcc_min = [];
-        
         const analyzer = Meyda.createMeydaAnalyzer({
             "audioContext": this.audioContext,
             "source": source,
             "bufferSize": winSize,
             "hopSize": hopSize,
-            "featureExtractors": [ "mfcc", "loudness", "buffer", "rms" ], //buffer returns raw audio
-            "numberOfMFCCCoefficients": 6, //specify max mfcc coeffs
+            "featureExtractors": [ "mfcc", "loudness", "buffer", "rms", "chroma" ], //buffer returns raw audio
+            "numberOfMFCCCoefficients": 10, //specify max mfcc coeffs
             "callback": features => this.analyzer_callback(features!, scale, container, normStat)
         });
         analyzer.start();
@@ -281,63 +276,43 @@ export class TimbreSpace extends ManagedScene {
     {
         if (this.audioElement.paused) { return; }
 
-        let rms = features.rms;
-        let mfcc = features.mfcc;
-        let buffer = features.buffer;
+        let featureDict = this.parseFeatures(features, normStat);
 
-        // figure out a better way to do this
-        mfcc = mfcc!;
-        rms = rms!;
-        buffer = buffer!;
-        
-        if ( rms > 0.001)
+        // if(featureDict.mfcc_1 == NaN) { return };        
+        if ( featureDict.rms > 0.001)
         {
             let posScalar = 1;
             let colScalar = 0.1;
+            
+            const position = new Vector3( 
+                featureDict[TimbreSpace.guiData.xAxis] * posScalar,  
+                featureDict[TimbreSpace.guiData.yAxis] * posScalar,  
+                featureDict[TimbreSpace.guiData.zAxis] * posScalar );
 
-            if(mfcc[0] == NaN) { return };
+            const color = new Color(  
+                featureDict[TimbreSpace.guiData.rColor] * colScalar,  
+                featureDict[TimbreSpace.guiData.gColor] * colScalar,  
+                featureDict[TimbreSpace.guiData.bColor] * colScalar );
 
-            // for (let i = 0; i < mfcc.length; i++)
-            // {
-            //     if (normStat.mfcc_max[i] > normStat.mfcc_max[i])
-            //     {
-
-            //     }
-            //     normStat.mfcc_max[i] = Math.max(mfcc[i], normStat.mfcc_max[i]);
-            //     normStat.mfcc_min[i] = Math.min(mfcc[i], normStat.mfcc_min[i]);
-            // }
-
-            const position = new Vector3(  mfcc[0]*posScalar,  mfcc[1]*posScalar,  mfcc[2]*posScalar );
-            const color = new Color(  mfcc[3]*colScalar,  mfcc[4]*colScalar,  mfcc[5]*colScalar );
-            const radius =  rms * scale;
-
-
-            // console.log(max, min);
-            // mfcc.map(value => isNaN(value) ? 0 : value);
-            // console.log(Math.max(mfcc[0]));
-            // console.log(Math.min(mfcc[0]));
-
-            // console.log(mfcc);
-            // for(let i = 0; i<mfcc.length; i++)
-            // {
-            //     console.log
-            // }
+            const radius =  featureDict[TimbreSpace.guiData.radius] * TimbreSpace.guiData.radiusScale;
 
             // remember to add scale eventually
             const geometry = new SphereGeometry( radius, 8, 8 );
             const material = new MeshBasicMaterial( {color: color} );
             var object = new Mesh( geometry, material );
-            // object.parent = this.m_MainGrainModel;
+
+           
+
             container.add(object);
 
             var grain = new GrainObject(
                 object,
-                buffer,
+                features.buffer!,
                 position,
+                radius,
                 color,
-                features)
+                featureDict)
             
-
             if (isNaN(this.m_AvgCenter.x)) { 
                 this.m_AvgCenter = new Vector3(0,0,0);
             }
@@ -348,56 +323,106 @@ export class TimbreSpace extends ManagedScene {
             // this.m_AllGrains.push(grain);
 
             // this.m_AllGrains.length
-            while (container.children.length > this.guiData.maxGrains)
-            {
+            while (container.children.length > TimbreSpace.guiData.maxGrains)
                 this.deleteGrain(container, 0);
-                // container.remove(container.children[0]);
-                // this.deleteGrain(container, this.m_AllGrains.shift()!);
-            }
+
+
+
+            // const circle = new Shape();
+            // const x = 0;
+            // const y = 0;
+            // circle.absarc(0, 0, radius, 0, );
+            // const geometry = new THREE.ShapeGeometry(circle, segments / 2);
+
+            // const material = new THREE.MeshBasicMaterial({
+            //   color: settings.colors.circle,
+            //   side: THREE.DoubleSide,
+            //   depthWrite: false
+            // });
+        
+            // const mesh = new THREE.Mesh(geometry, material);
+        
+            // scene.add(mesh);
         }
+    }
+
+    parseFeatures(features : Partial<Meyda.MeydaFeaturesObject>, normStat : any)
+    {
+        // get the highest confidence for chroma class
+        let pitchClass =  features.chroma!.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
+        // normalize to 0-1
+        pitchClass /= 12;
+
+        let featureDict : { [key: string]: number } = {
+            "rms" : features.rms!,
+            "loudness" : features.loudness?.total!,
+            "chroma" : pitchClass,
+        };
+
+        for(let i = 0; i < features.mfcc!.length-1; i++)
+        {
+            let key = "mfcc_" + (i+1);
+            let coeff = features.mfcc![i];
+            
+            if(coeff > normStat.max[key])
+            {
+                normStat.max[key] = coeff;
+            }
+            if(coeff < normStat.min[key])
+            {
+                normStat.min[key] = coeff;
+            }
+            // normalize mfcc coefficient
+            // featureDict[key] = (coeff - normStat.min[key]) / (normStat.max[key] - normStat.min[key]);
+            featureDict[key] = coeff;
+        }
+
+        return featureDict;
     }
 
     deleteGrain(container : Object3D, index : number)
     {
+        container.children[index].userData.deleteGrain();
         container.remove(container.children[index]);
     }
 
     _animate() {
 
-        this.raycastObjects();
 
-        if (this.m_MainGrainModel != undefined)
+        if (TimbreSpace.mainGrainModel != undefined)
         {
-            // var centerTarget : Vector3 = this.m_AvgCenter.divideScalar(this.m_MainGrainModel.children.length);
+            // var centerTarget : Vector3 = this.m_AvgCenter.divideScalar(TimbreSpace.mainGrainModel.children.length);
             // var currentLoc = this.orbitControls.target;
             // var newLoc = currentLoc.lerp(centerTarget, 0.5);
             // this.orbitControls.target.set(centerTarget.x, centerTarget.y, centerTarget.z);
 
-            this.orbitControls.target = this.guiData.ctrPos;
+            this.orbitControls.target = TimbreSpace.guiData.ctrPos;
             this.orbitControls.update();
+
+            TimbreSpace.mainGrainModel.children.forEach(item => {
+                item.userData.update();
+            });
         }
 
         // this.renderer.setAnimationLoop( function () {
         //     this.renderer.render( this.scene, this.camera );
         // } );
-
         // // requestAnimationFrame( animate );
-        // if (this.m_MainGrainModel != undefined)
-            // this.m_MainGrainModel.rotation.x += 0.1;
+        // if (TimbreSpace.mainGrainModel != undefined)
+            // TimbreSpace.mainGrainModel.rotation.x += 0.1;
         // this.render();
         // stats.update();
-        // console.log(this.camera);
     }
 
-    raycastObjects()
+    raycastObjects(pointer : Vector2)
     {
-        if (this.m_MainGrainModel != undefined)
+        if (TimbreSpace.mainGrainModel != undefined)
         {
             // console.log(this.pointer);
 
-            this.raycaster.setFromCamera( this.pointer, this.camera );
+            this.raycaster.setFromCamera( pointer, this.camera );
 
-            const intersects = this.raycaster.intersectObjects( this.m_MainGrainModel.children );
+            const intersects = this.raycaster.intersectObjects( TimbreSpace.mainGrainModel.children );
 
             if ( intersects.length > 0 ) {
 
@@ -410,7 +435,6 @@ export class TimbreSpace extends ManagedScene {
                     grain.playAudio(1.0);
                 }
             } else {
-
                 this.INTERSECTED = null;
             }
         }
@@ -418,27 +442,32 @@ export class TimbreSpace extends ManagedScene {
 	
     onPointerMove( event : any ) {
 
-        if (this.pointer != undefined)
+        if (this.audioContext == undefined)
+            return;
+
+        if(this.audioContext.state == "suspended")
         {
-            // this.audioPlaybackEngine();
-            if(this.audioContext.state == "suspended")
-            {
-                this.startAudioContext();
-                this.audioContextRunning = false;
-            }
-
-            if(this.audioContext.state == "running" && !this.audioContextRunning)
-            {
-                this.audioContextRunning = true;
-                this.m_MainGrainModel = this.spawnGrainModel(this.soundFile);
-            }
-
-            this.pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-            this.pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+            this.startAudioContext();
+            this.audioContextRunning = false;
         }
+
+        if(this.audioContext.state == "running" && !this.audioContextRunning)
+        {
+            this.audioContextRunning = true;
+            TimbreSpace.mainGrainModel = this.spawnGrainModel(this.soundFile);
+        }
+
+        // this.pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        // this.pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+        let pointer : Vector2 = new Vector2(event.clientX, event.clientY);
+        this.raycastObjects(pointer);
     }
 
     onWindowResize() {
+        if (this.renderer == undefined)
+            return;
+
         // if (this.renderer != undefined)
         // {
         //     this.renderer.setSize( window.innerWidth, window.innerHeight );
@@ -460,3 +489,110 @@ export class TimbreSpace extends ManagedScene {
     //     });
     // });
 }
+
+
+    // // MeydaFeaturesObject
+    // // features : Partial<Meyda.MeydaFeaturesObject>
+    // analyzer_callback(
+    //     features : Partial<Meyda.MeydaFeaturesObject>, 
+    //     scale : number, 
+    //     container : Object3D, 
+    //     normStat : any)
+    // {
+    //     if (this.audioElement.paused) { return; }
+
+    //     console.log(features["mfcc"]);
+    //     let rms = features.rms;
+    //     let mfcc = features.mfcc;
+    //     let buffer = features.buffer;
+    //     let loudness_ = features.loudness;
+
+    //     // figure out a better way to do this
+    //     mfcc = mfcc!;
+    //     rms = rms!;
+    //     buffer = buffer!;
+    //     let loudness = loudness_!.total;
+        
+    //     if ( rms > 0.001)
+    //     {
+    //         let posScalar = 1;
+    //         let colScalar = 0.1;
+
+    //         if(mfcc[0] == NaN) { return };
+
+    //         // for (let i = 0; i < mfcc.length; i++)
+    //         // {
+    //         //     if (normStat.mfcc_max[i] > normStat.mfcc_max[i])
+    //         //     {
+
+    //         //     }
+    //         //     normStat.mfcc_max[i] = Math.max(mfcc[i], normStat.mfcc_max[i]);
+    //         //     normStat.mfcc_min[i] = Math.min(mfcc[i], normStat.mfcc_min[i]);
+    //         // }
+
+    //         const position = new Vector3(  mfcc[0]*posScalar,  mfcc[1]*posScalar,  mfcc[2]*posScalar );
+    //         const color = new Color(  mfcc[3]*colScalar,  mfcc[4]*colScalar,  mfcc[5]*colScalar );
+    //         const radius =  rms * scale;
+
+    //         // remember to add scale eventually
+    //         const geometry = new SphereGeometry( radius, 8, 8 );
+    //         const material = new MeshBasicMaterial( {color: color} );
+    //         var object = new Mesh( geometry, material );
+    //         // object.parent = TimbreSpace.mainGrainModel;
+    //         container.add(object);
+
+    //         var grain = new GrainObject(
+    //             object,
+    //             buffer,
+    //             position,
+    //             color,
+    //             features)
+            
+
+    //         if (isNaN(this.m_AvgCenter.x)) { 
+    //             this.m_AvgCenter = new Vector3(0,0,0);
+    //         }
+
+    //         var newAvg = this.m_AvgCenter.clone().add(position);
+    //         this.m_AvgCenter.set(newAvg.x, newAvg.y, newAvg.z);
+            
+    //         // this.m_AllGrains.push(grain);
+
+    //         // this.m_AllGrains.length
+    //         while (container.children.length > TimbreSpace.guiData.maxGrains)
+    //         {
+    //             this.deleteGrain(container, 0);
+    //             // container.remove(container.children[0]);
+    //             // this.deleteGrain(container, this.m_AllGrains.shift()!);
+    //         }
+    //     }
+    // }
+
+
+    // "mfcc_1" : features.mfcc![0],
+    // "mfcc_2" : features.mfcc![1],
+    // "mfcc_3" : features.mfcc![2],
+    // "mfcc_4" : features.mfcc![3],
+    // "mfcc_5" : features.mfcc![4],
+    // "mfcc_6" : features.mfcc![5],
+    // "mfcc_7" : features.mfcc![6],
+    // "mfcc_8" : features.mfcc![7],
+    // "mfcc_9" : features.mfcc![8],
+    // "mfcc_10" : features.mfcc![9],
+
+
+            // const grainModelFeatures = [
+        //     "rms",
+        //     "loudness",
+        //     "chroma",
+        //     "mfcc_1",
+        //     "mfcc_2",
+        //     "mfcc_3",
+        //     "mfcc_4",
+        //     "mfcc_5",
+        //     "mfcc_6",
+        //     "mfcc_7",
+        //     "mfcc_8",
+        //     "mfcc_9",
+        //     "mfcc_10",
+        // ];

@@ -120,9 +120,10 @@ export class ParallaxArt extends ManagedScene {
 	
 				const path : any = paths[ i ];
 	
-				// const fillColor = path.userData.style.fill;
-				const fillColor = new Color(1,1,1);
+				const fillColor = path.userData.style.fill;
+				// const fillColor = new Color(1,1,1);
 				if ( this.guiData.drawFillShapes && fillColor !== undefined && fillColor !== 'none' ) {
+					// if ( this.guiData.drawFillShapes && fillColor !== undefined && fillColor !== 'none' ) {
 	
 					const material = new MeshBasicMaterial( {
 						color: new Color().setStyle( fillColor ),
