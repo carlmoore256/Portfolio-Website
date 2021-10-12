@@ -42,7 +42,7 @@ export function TimbreSpaceWrapper() : JSX.Element {
         <div>
  
 
-            <h1>TEST</h1>
+            <h1>CARL MOORE</h1>
         </div>
         <div
         ref={mountRef}/>    
